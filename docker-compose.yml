@@ -1,6 +1,17 @@
 version: '3'
 
 services:
+    twem-proxy:
+        image: malexer/twemproxy:latest
+        environment:
+             - REDIS_SERVERS=redis-master:6379:1,redis-slave-1:6379:2,redis-slave-2:6379:2
+#             - SERVER_CONNECTIONS=40
+        depends_on:
+            - redis-master
+            - redis-slave-1
+            - redis-slave-2
+        ports:
+            - "6380:6380"
     redis-master:
         image: redis:3
         command: redis-server
@@ -16,7 +27,6 @@ services:
         command: redis-server --slaveof redis-master 6379
         links:
             - redis-master
-
     sentinel-1:
         build: sentinel
         environment:
@@ -27,7 +37,6 @@ services:
             - redis-master
             - redis-slave-1
             - redis-slave-2
-
     sentinel-2:
         build: sentinel
         environment:
@@ -38,7 +47,6 @@ services:
             - redis-master
             - redis-slave-1
             - redis-slave-2
-
     sentinel-3:
         build: sentinel
         environment:
@@ -49,17 +57,3 @@ services:
             - redis-master
             - redis-slave-1
             - redis-slave-2
-
-    redis_cluster_app:
-        build: app
-        environment:
-          - SENTINEL_DOWN_AFTER=5000
-          - SENTINEL_FAILOVER=500
-          - SENTINEL_QUORUM=2
-        depends_on:
-            - redis-master
-            - redis-slave-1
-            - redis-slave-2
-        command: /bin/bash -c "echo 'Waiting for redis to run..' && sleep 60 && python redis_app.py"
-        volumes:
-            - ./app:/usr/src/app/redis_app/
